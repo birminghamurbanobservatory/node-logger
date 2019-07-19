@@ -59,14 +59,14 @@ You can push with tags in VS Code by searching for **Git Push With Tags** in the
 Install it in your other app using the following:
 
 ```
-npm install bitbucket:altasense/node-logger#semver:^1.0.0
+npm install github:birminghamurbanobservatory/node-logger#semver:^1.0.0
 ```
 
 which will add the following to your _package.json_ file:
 
 ```json
 {
-  "node-logger": "bitbucket:altasense/node-logger#semver:^1.0.0",
+  "node-logger": "github:birminghamurbanobservatory/node-logger#semver:^1.0.0",
 }
 ```
 

@@ -2,7 +2,7 @@
 // Dependencies
 //-------------------------------------------------
 const winston = require('winston');
-const joi = require('joi');
+const joi = require('@hapi/joi');
 
 //-------------------------------------------------
 // Module Globals

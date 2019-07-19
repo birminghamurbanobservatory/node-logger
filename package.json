@@ -8,10 +8,10 @@
   },
   "author": "Simon Bell",
   "license": "ISC",
-  "repository": "bitbucket:altasense/node-logger",
+  "repository": "github:birminghamurbanobservatory/node-logger",
   "private": true,
   "dependencies": {
-    "joi": "^14.3.1",
+    "@hapi/joi": "^15.1.0",
     "winston": "^2.4.4"
   },
   "devDependencies": {
