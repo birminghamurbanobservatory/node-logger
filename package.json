@@ -1,0 +1,22 @@
+{
+  "name": "node-logger",
+  "version": "1.0.4",
+  "description": "Produces sensible log output from node applications.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --runInBand --env=node"
+  },
+  "author": "Simon Bell",
+  "license": "ISC",
+  "repository": "bitbucket:altasense/node-logger",
+  "private": true,
+  "dependencies": {
+    "joi": "^14.3.1",
+    "winston": "^2.4.4"
+  },
+  "devDependencies": {
+    "check-types": "^8.0.1",
+    "jest": "^24.5.0",
+    "test-console": "^1.1.0"
+  }
+}
