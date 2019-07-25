@@ -119,7 +119,7 @@ function updateLoggerWithOptions(logger, options) {
             // If provided with a function to access the correlation id, then add the id to the log output.
             if (typeof options.getCorrelationId !== 'undefined') {
               const correlationId = options.getCorrelationId() || 'no-correlation-id';
-              obj.meta = obj.correlationId = correlationId;
+              obj.correlationId = correlationId;
             }
               
             return JSON.stringify(obj);
