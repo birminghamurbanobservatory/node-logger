@@ -73,7 +73,7 @@ function updateLoggerWithOptions(logger, options) {
   checkOptions(options);
 
   // Remove existing first
-  logger.clear(); 
+  logger.clear();
 
   if (options.enabled) {
 
@@ -115,6 +115,12 @@ function updateLoggerWithOptions(logger, options) {
             if (Object.keys(formatOptions.meta).length !== 0) {
               obj.meta = formatOptions.meta;
             }
+
+            // If provided with a function to access the correlation id, then add the id to the log output.
+            if (typeof options.getCorrelationId !== 'undefined') {
+              const correlationId = options.getCorrelationId() || 'no-correlation-id';
+              obj.meta = obj.correlationId = correlationId;
+            }
               
             return JSON.stringify(obj);
           }
@@ -144,7 +150,8 @@ function checkOptions(options) {
       .required(),
     format: joi.string()
       .valid(['basic', 'terminal', 'json']) // allow only these values
-      .required()
+      .required(),
+    getCorrelationId: joi.func()
   }).unknown() // allows for extra fields (i.e that we don't check for) in the object being checked.
     .required();
 
