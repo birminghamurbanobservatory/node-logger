@@ -28,7 +28,7 @@ The node-logger is a singleton, thus once configured you can _require_ it in any
 
 ```js
 logger.error('Panic now');
-logger.warn('You might need to start panicing');
+logger.warn('You might need to start panicking');
 logger.info('All is good');
 logger.debug('Here is some handy extra detail');
 ```
