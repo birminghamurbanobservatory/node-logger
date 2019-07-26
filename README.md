@@ -15,7 +15,8 @@ const logger = require('node-logger');
 logger.configure({
   enabled: true,
   level: 'debug',
-  format: 'json'  
+  format: 'json'
+  getCorrelationId: myGetCorrelationIdFunction
 });
 // Use it
 logger.info('Logger has now been configured');

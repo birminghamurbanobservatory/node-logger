@@ -90,6 +90,64 @@ describe('node-logger testing', () => {
     // TODO: Could make this test stricter by testing the exact output more closely
 
   });   
+
+
+  test('Adds a correlationId to basic output', () => {
+
+    const logger = require('../index');
+    const correlationId = 'aaabbbccc';
+    const options = {
+      enabled: true, 
+      level: 'info', 
+      format: 'basic',
+      getCorrelationId: () => correlationId
+    };
+    logger.configure(options);
+    const msg = 'Something has happened';
+    const output = stdout.inspectSync(() => {
+      logger.info(msg);
+    });
+    expect(check.contains(output[0], correlationId)).toBe(true);
+
+  });
+
+  test('Adds a correlationId to terminal output', () => {
+
+    const logger = require('../index');
+    const correlationId = 'aaabbbccc';
+    const options = {
+      enabled: true, 
+      level: 'info', 
+      format: 'terminal',
+      getCorrelationId: () => correlationId
+    };
+    logger.configure(options);
+    const msg = 'Something has happened';
+    const output = stdout.inspectSync(() => {
+      logger.info(msg);
+    });
+    expect(check.contains(output[0], correlationId)).toBe(true);
+
+  });
   
 
+  test('Adds a correlationId to json output', () => {
+
+    const logger = require('../index');
+    const correlationId = 'aaabbbccc';
+    const options = {
+      enabled: true, 
+      level: 'info', 
+      format: 'json',
+      getCorrelationId: () => correlationId
+    };
+    logger.configure(options);
+    const msg = 'Something has happened';
+    const output = stdout.inspectSync(() => {
+      logger.info(msg);
+    });
+    expect(check.contains(output[0], correlationId)).toBe(true);
+
+  });
+  
 });

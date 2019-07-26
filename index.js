@@ -3,6 +3,8 @@
 //-------------------------------------------------
 const winston = require('winston');
 const joi = require('@hapi/joi');
+const config = winston.config;
+const {stringify} = require('q-i');
 
 //-------------------------------------------------
 // Module Globals
@@ -80,20 +82,54 @@ function updateLoggerWithOptions(logger, options) {
     // Format the output differently depending on the environment.
     switch (options.format) {
 
+      //------------------------
+      // Basic
+      //------------------------
       case 'basic':
         logger.add(winston.transports.Console, {
-          level: options.level
+          level: options.level,
+          formatter: (formatOptions) => {
+            const correlationIdSection = isDefined(options.getCorrelationId) ? ` [${options.getCorrelationId()}]:` : '';
+            let messageSection = isObject(formatOptions.message) ? JSON.stringify(formatOptions.message) : formatOptions.message;
+            if (messageSection !== '') {
+              messageSection = ` ${messageSection}`;
+            } 
+            let metaSection = (Object.keys(formatOptions.meta).length !== 0) ? JSON.stringify(formatOptions.meta) : '';
+            if (metaSection !== '') {
+              metaSection = ` ${metaSection}`;
+            }             
+            return `${formatOptions.level}:${correlationIdSection}${messageSection}${metaSection}`;
+          }
         });
         break;
 
+      //------------------------
+      // Terminal
+      //------------------------
       case 'terminal':
         logger.add(winston.transports.Console, {
-          colorize: true,
-          prettyPrint: true,
-          level: options.level
+          // colorize: true,
+          // prettyPrint: true,
+          level: options.level,
+          // // I can't find a way of including the correlationId without needing a custom formatter which results in loosing the nice prettyPrint feature.
+          formatter: (formatOptions) => {
+            const correlationIdSection = isDefined(options.getCorrelationId) ? ` [${options.getCorrelationId()}]:` : '';
+            let messageSection = isObject(formatOptions.message) ? `\n${stringify(formatOptions.message)}` : formatOptions.message;
+            if (messageSection !== '') {
+              messageSection = ` ${messageSection}`;
+            }   
+            let metaSection = (Object.keys(formatOptions.meta).length !== 0) ? `\n${stringify(formatOptions.meta)}` : '';
+            if (metaSection !== '') {
+              metaSection = ` ${metaSection}`;
+            }                      
+            return `${config.colorize(formatOptions.level)}:${correlationIdSection}${messageSection}${metaSection}`;
+          }          
         });
         break;
 
+      //------------------------
+      // JSON
+      //------------------------
       case 'json':
         logger.add(winston.transports.Console, {
           level: options.level,
@@ -117,7 +153,7 @@ function updateLoggerWithOptions(logger, options) {
             }
 
             // If provided with a function to access the correlation id, then add the id to the log output.
-            if (typeof options.getCorrelationId !== 'undefined') {
+            if (isDefined(options.getCorrelationId)) {
               const correlationId = options.getCorrelationId() || 'no-correlation-id';
               obj.correlationId = correlationId;
             }
@@ -163,4 +199,14 @@ function checkOptions(options) {
 
   return validatedOptions;
 
+}
+
+
+function isObject(x) {
+  return x !== null && typeof x === 'object';
+}
+
+
+function isDefined(input) {
+  return typeof input !== 'undefined';
 }
