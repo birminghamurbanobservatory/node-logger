@@ -82,6 +82,7 @@ function updateLoggerWithOptions(logger, options) {
     // Format the output differently depending on the environment.
     switch (options.format) {
 
+      // TODO: It appears to be impossible to detect when the thing to be logged is NULL or an empty object as they would both have formatOptions.message='', and formatOptions.meta={}, i.e. exactly the same as if you passed in nothing at all.
       //------------------------
       // Basic
       //------------------------
@@ -90,11 +91,23 @@ function updateLoggerWithOptions(logger, options) {
           level: options.level,
           formatter: (formatOptions) => {
             const correlationIdSection = isDefined(options.getCorrelationId) ? ` [${options.getCorrelationId()}]:` : '';
-            let messageSection = isObject(formatOptions.message) ? JSON.stringify(formatOptions.message) : formatOptions.message;
+            let messageSection = formatOptions.message;
             if (messageSection !== '') {
               messageSection = ` ${messageSection}`;
             } 
-            let metaSection = (Object.keys(formatOptions.meta).length !== 0) ? JSON.stringify(formatOptions.meta) : '';
+            let metaSection;
+            if (isObjectNotArray(formatOptions.meta)) {
+              if (Object.keys(formatOptions.meta).length === 0) {
+                metaSection = '';
+              } else {
+                metaSection = JSON.stringify(formatOptions.meta);
+              }
+            } else if (typeof formatOptions.meta === 'undefined') {
+              // This means that undefined was passed to the logger, thus we should log this.
+              metaSection = 'undefined';
+            } else {
+              metaSection = JSON.stringify(formatOptions.meta);
+            }
             if (metaSection !== '') {
               metaSection = ` ${metaSection}`;
             }             
@@ -108,20 +121,29 @@ function updateLoggerWithOptions(logger, options) {
       //------------------------
       case 'terminal':
         logger.add(winston.transports.Console, {
-          // colorize: true,
-          // prettyPrint: true,
           level: options.level,
-          // // I can't find a way of including the correlationId without needing a custom formatter which results in loosing the nice prettyPrint feature.
           formatter: (formatOptions) => {
             const correlationIdSection = isDefined(options.getCorrelationId) ? ` [${options.getCorrelationId()}]:` : '';
-            let messageSection = isObject(formatOptions.message) ? `\n${stringify(formatOptions.message)}` : formatOptions.message;
+            let messageSection = formatOptions.message;
             if (messageSection !== '') {
               messageSection = ` ${messageSection}`;
             }   
-            let metaSection = (Object.keys(formatOptions.meta).length !== 0) ? `\n${stringify(formatOptions.meta)}` : '';
+            let metaSection;
+            if (isObjectNotArray(formatOptions.meta)) {
+              if (Object.keys(formatOptions.meta).length === 0) {
+                metaSection = '';
+              } else {
+                metaSection = `\n${stringify(formatOptions.meta)}`;
+              }
+            } else if (typeof formatOptions.meta === 'undefined') {
+              // This means that undefined was passed to the logger, thus we should log this.
+              metaSection = 'undefined';
+            } else {
+              metaSection = `\n${stringify(formatOptions.meta)}`;
+            }
             if (metaSection !== '') {
               metaSection = ` ${metaSection}`;
-            }                      
+            }
             return `${config.colorize(formatOptions.level)}:${correlationIdSection}${messageSection}${metaSection}`;
           }          
         });
@@ -206,6 +228,9 @@ function isObject(x) {
   return x !== null && typeof x === 'object';
 }
 
+function isObjectNotArray(x) {
+  return (x !== null) && (typeof x === "object") && (toString.call(x) !== "[object Array]");
+}
 
 function isDefined(input) {
   return typeof input !== 'undefined';

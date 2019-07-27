@@ -149,5 +149,24 @@ describe('node-logger testing', () => {
     expect(check.contains(output[0], correlationId)).toBe(true);
 
   });
+
+
+  test('Logs an empty array properly whilst in basic mode', () => {
+
+    const logger = require('../index');
+    const options = {
+      enabled: true, 
+      level: 'info', 
+      format: 'basic'
+    };
+    logger.configure(options);
+    const msg = [];
+    const output = stdout.inspectSync(() => {
+      logger.info(msg);
+    });
+    expect(check.contains(output[0], '[]')).toBe(true);
+
+  });
+
   
 });
