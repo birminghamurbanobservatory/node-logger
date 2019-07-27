@@ -1,237 +1,236 @@
-//-------------------------------------------------
-// Dependencies
-//-------------------------------------------------
-const winston = require('winston');
 const joi = require('@hapi/joi');
-const config = winston.config;
 const {stringify} = require('q-i');
-
-//-------------------------------------------------
-// Module Globals
-//-------------------------------------------------
-let _logger;
-let _initialised = false;
-let _configured = false;
-const _defaultOptions = {
-  enabled: true,
-  level: 'info',
-  format: 'basic'
-};
+const check = require('check-types');
+const chalk = require('chalk');
+const SerialisedError = require('serialised-error');
 
 
-//-------------------------------------------------
-// Module Exports
-//-------------------------------------------------
-module.exports = returnLogger();
+class NodeLogger {
 
-
-//-------------------------------------------------
-// Create Logger
-//-------------------------------------------------
-function returnLogger() {
-
-  if (_initialised) {
-    return _logger;
-
-  } else {
-    // Initialise a basic instance of winston
-    _logger = new (winston.Logger)({});
-    updateLoggerWithOptions(_logger, _defaultOptions);
-    _initialised = true;
-
+  constructor() {
+    // Defaults
+    this.options = {
+      enabled: true,
+      level: 'info',
+      format: 'basic'
+    };
+    this.levels = ['silly', 'debug', 'info', 'warn', 'error']; 
+    this.initialised = false;
+    this.configured = false;
   }
 
-  // Add a custom method
-  _logger.configure = configure;
+  configure(options) {
 
-  return _logger;
+    if (this.configured) {
+      throw new Error('You may only configure the logger once.');
+    }
 
-}
+    const schema = joi.object({
+      enabled: joi.boolean()
+        .required(),
+      level: joi.string()
+        .valid(this.levels) // allow only these values
+        .required(),
+      format: joi.string()
+        .valid(['basic', 'terminal', 'json']) // allow only these values
+        .required(),
+      getCorrelationId: joi.func()
+    }).required(); // allows for extra fields (i.e that we don't check for) in the object being checked.
 
+    const {error: err, value: validatedOptions} = joi.validate(options, schema);
 
-//-------------------------------------------------
-// Configure
-//-------------------------------------------------
-function configure(options) {
+    if (err) {
+      throw new Error(`Invalid logger options: ${err.message}`);
+    }
 
-  if (_configured) {
-    throw new Error('You may only configure the node-logger once.');
+    this.options = Object.assign({}, this.options, validatedOptions);
+    this.configured = true;
   }
 
-  const mergedOptions = Object.assign({}, _defaultOptions, options);
+  silly(part1, part2) {
+    this.log('silly', part1, part2);
+  }
 
-  updateLoggerWithOptions(_logger, mergedOptions);
+  debug(part1, part2) {
+    this.log('debug', part1, part2);
+  }
 
-  _configured = true;
+  info(part1, part2) {
+    this.log('info', part1, part2);
+  }
+  
+  warn(part1, part2) {
+    this.log('warn', part1, part2);
+  }  
 
-}
+  error(part1, part2) {
+    this.log('error', part1, part2);
+  } 
+  
 
+  log(level, part1, part2) {
 
-//-------------------------------------------------
-// Update logger with options
-//-------------------------------------------------
-function updateLoggerWithOptions(logger, options) {
+    if (!this.options.enabled) {
+      return;
+    }
+    
+    if (this.levels.indexOf(level) < this.levels.indexOf(this.options.level)) {
+      return;
+    }
 
-  checkOptions(options);
-
-  // Remove existing first
-  logger.clear();
-
-  if (options.enabled) {
-
-    // Format the output differently depending on the environment.
-    switch (options.format) {
-
-      // TODO: It appears to be impossible to detect when the thing to be logged is NULL or an empty object as they would both have formatOptions.message='', and formatOptions.meta={}, i.e. exactly the same as if you passed in nothing at all.
-      //------------------------
-      // Basic
-      //------------------------
+    switch (this.options.format) {
       case 'basic':
-        logger.add(winston.transports.Console, {
-          level: options.level,
-          formatter: (formatOptions) => {
-            const correlationIdSection = isDefined(options.getCorrelationId) ? ` [${options.getCorrelationId()}]:` : '';
-            let messageSection = formatOptions.message;
-            if (messageSection !== '') {
-              messageSection = ` ${messageSection}`;
-            } 
-            let metaSection;
-            if (isObjectNotArray(formatOptions.meta)) {
-              if (Object.keys(formatOptions.meta).length === 0) {
-                metaSection = '';
-              } else {
-                metaSection = JSON.stringify(formatOptions.meta);
-              }
-            } else if (typeof formatOptions.meta === 'undefined') {
-              // This means that undefined was passed to the logger, thus we should log this.
-              metaSection = 'undefined';
-            } else {
-              metaSection = JSON.stringify(formatOptions.meta);
-            }
-            if (metaSection !== '') {
-              metaSection = ` ${metaSection}`;
-            }             
-            return `${formatOptions.level}:${correlationIdSection}${messageSection}${metaSection}`;
-          }
-        });
+        this.logBasic(level, part1, part2);
         break;
-
-      //------------------------
-      // Terminal
-      //------------------------
       case 'terminal':
-        logger.add(winston.transports.Console, {
-          level: options.level,
-          formatter: (formatOptions) => {
-            const correlationIdSection = isDefined(options.getCorrelationId) ? ` [${options.getCorrelationId()}]:` : '';
-            let messageSection = formatOptions.message;
-            if (messageSection !== '') {
-              messageSection = ` ${messageSection}`;
-            }   
-            let metaSection;
-            if (isObjectNotArray(formatOptions.meta)) {
-              if (Object.keys(formatOptions.meta).length === 0) {
-                metaSection = '';
-              } else {
-                metaSection = `\n${stringify(formatOptions.meta)}`;
-              }
-            } else if (typeof formatOptions.meta === 'undefined') {
-              // This means that undefined was passed to the logger, thus we should log this.
-              metaSection = 'undefined';
-            } else {
-              metaSection = `\n${stringify(formatOptions.meta)}`;
-            }
-            if (metaSection !== '') {
-              metaSection = ` ${metaSection}`;
-            }
-            return `${config.colorize(formatOptions.level)}:${correlationIdSection}${messageSection}${metaSection}`;
-          }          
-        });
+        this.logTerminal(level, part1, part2);
         break;
+      case 'json':  
+        this.logJson(level, part1, part2);
+        break;
+    }
 
-      //------------------------
-      // JSON
-      //------------------------
-      case 'json':
-        logger.add(winston.transports.Console, {
-          level: options.level,
-          formatter: (formatOptions) => {
+  }
 
-            const now = new Date();
 
-            const obj = {
-              level: formatOptions.level,
-              timestamp: now.getTime(),  // want a number so I can do greater/less than queries on CloudWatch
-              timestr: now.toISOString() // add a more human-readable form too
-            };
+  logBasic(level, part1, part2) {
 
-            // Only add the message and meta if they have actually been provided.
-            if (formatOptions.message) {
-              obj.message = formatOptions.message;
-            }
-            
-            if (Object.keys(formatOptions.meta).length !== 0) {
-              obj.meta = formatOptions.meta;
-            }
+    function stringifyForBasic(input) {
+      if (check.undefined(input)) {
+        // Need this bit as JSON.stringify(undefined) returns undefined rather than a string
+        return 'undefined';
+      } else {
+        return check.string(input) ? input : JSON.stringify(input);
+      }
+    }
 
-            // If provided with a function to access the correlation id, then add the id to the log output.
-            if (isDefined(options.getCorrelationId)) {
-              const correlationId = options.getCorrelationId() || 'no-correlation-id';
-              obj.correlationId = correlationId;
-            }
-              
-            return JSON.stringify(obj);
-          }
-        });
+    let correlationIdSection;
+    if (check.assigned(this.options.getCorrelationId)) {
+      correlationIdSection = ` [${this.options.getCorrelationId() || 'no-correlation-id'}]:`;
+    } else {
+      correlationIdSection = '';
+    }
+
+    const part1Formatted = stringifyForBasic(part1);
+    let part2Formatted = stringifyForBasic(part2);
+
+    if (part2Formatted === 'undefined') {
+      part2Formatted = '';
+    }
+
+    const completeLog = `${level}:${correlationIdSection}${this.addPadding(part1Formatted)}${this.addPadding(part2Formatted)}`;
+
+    console.log(completeLog);
+  }
+
+
+  logTerminal(level, part1, part2) {
+    
+    function stringifyForTerminal(input) {
+      if (check.undefined(input)) {
+        return 'undefined';
+      } else if (check.string(input)) {
+        return input;
+      } else if (check.object(input) || check.array(input)) {
+        return `\n${stringify(input)}`;
+      } else {
+        return `${stringify(input)}`;
+      }
+    }
+
+    let correlationIdSection;
+    if (check.assigned(this.options.getCorrelationId)) {
+      correlationIdSection = ` [${this.options.getCorrelationId() || 'no-correlation-id'}]:`;
+    } else {
+      correlationIdSection = '';
+    }
+
+    if (part1 instanceof Error) {
+      console.log(`${this.colourLevel(level)}:${correlationIdSection}`);
+      console.log(part1); // formats the error nicer than stringify can
+      return;
+    }
+
+    const part1Formatted = stringifyForTerminal(part1);
+
+    if (part2 instanceof Error) {
+      console.log(`${this.colourLevel(level)}:${correlationIdSection}${this.addPadding(part1Formatted)}`);
+      console.log(part2);
+      return;
+    }
+
+    let part2Formatted = stringifyForTerminal(part2);
+
+    if (part2Formatted === 'undefined') {
+      part2Formatted = '';
+    }
+
+    const completeLog = `${this.colourLevel(level)}:${correlationIdSection}${this.addPadding(part1Formatted)}${this.addPadding(part2Formatted)}`;
+
+    console.log(completeLog);
+
+  }
+
+
+  logJson(level, part1, part2) {
+
+    const now = new Date();
+
+    // Need to convert errors to a POJO or JSON.stringify won't work.
+    const p1 = check.instance(part1, Error) ? new SerialisedError(part1) : part1;
+    const p2 = check.instance(part2, Error) ? new SerialisedError(part2) : part2;
+
+    const obj = {
+      level,
+      timestamp: now.getTime(),  // want a number so I can do greater/less than queries on CloudWatch
+      timestr: now.toISOString(), // add a more human-readable form too
+      message: p1,
+      meta: p2
+    };
+
+    // If provided with a function to access the correlation id, then add the id to the log output.
+    if (check.assigned(this.options.getCorrelationId)) {
+      obj.correlationId = this.options.getCorrelationId() || 'no-correlation-id';
+    }
+      
+    console.log(JSON.stringify(obj));
+
+  }
+
+
+  addPadding(input) {
+    if (input !== '') {
+      return ` ${input}`;
+    } else {
+      return input;
+    }   
+  } 
+  
+  colourLevel(level) {
+    let coloured;
+    switch (level) {
+      case 'error':
+        coloured = chalk.red(level);
+        break;
+      case 'warn':
+        coloured = chalk.yellow(level);
+        break;
+      case 'info':
+        coloured = chalk.green(level);
+        break;    
+      case 'debug':
+        coloured = chalk.blue(level);
         break; 
-
-      default:
-        throw new Error('Invalid logger format');
-
-    } // switch
-
+      case 'silly':
+        coloured = chalk.cyan(level);
+        break;                     
+    }
+    return coloured;
   }
 
 }
 
 
-//-------------------------------------------------
-// Check options
-//-------------------------------------------------
-function checkOptions(options) {
 
-  const schema = joi.object({
-    enabled: joi.boolean()
-      .required(),
-    level: joi.string()
-      .valid(['error', 'warn', 'info', 'verbose', 'debug', 'silly']) // allow only these values
-      .required(),
-    format: joi.string()
-      .valid(['basic', 'terminal', 'json']) // allow only these values
-      .required(),
-    getCorrelationId: joi.func()
-  }).unknown() // allows for extra fields (i.e that we don't check for) in the object being checked.
-    .required();
+module.exports = new NodeLogger();
 
-  const {error: err, value: validatedOptions} = joi.validate(options, schema);
-
-  if (err) {
-    throw new Error(`Failed to validate logger options: ${err.message}`);
-  }
-
-  return validatedOptions;
-
-}
-
-
-function isObject(x) {
-  return x !== null && typeof x === 'object';
-}
-
-function isObjectNotArray(x) {
-  return (x !== null) && (typeof x === "object") && (toString.call(x) !== "[object Array]");
-}
-
-function isDefined(input) {
-  return typeof input !== 'undefined';
-}

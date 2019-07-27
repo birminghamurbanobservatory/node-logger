@@ -23,6 +23,7 @@ logger.debug('Here is an empty array', []);
 logger.error('Here is the error', new Error('whoops'));
 logger.error(new Error('Oh Dear'));
 logger.debug();
+logger.debug('');
 
 
 

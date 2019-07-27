@@ -4,6 +4,8 @@
 const check = require('check-types');
 const stdout = require('test-console').stdout;
 
+// TODO: Something isn't quite right with this automatic tests. I think because jest is also logging stuff out.
+
 //-------------------------------------------------
 // Tests
 //-------------------------------------------------
@@ -64,9 +66,10 @@ describe('node-logger testing', () => {
     const output = stdout.inspectSync(() => {
       logger.info(msg);
     });
-    expect(check.contains(output[0], validOptions.level)).toBe(true);
-    expect(check.contains(output[0], msg)).toBe(true);
-    // TODO: Could make this test stricter by testing the exact output more closely
+        
+    expect(check.contains(output.join(''), validOptions.level)).toBe(true);
+    expect(check.contains(output.join(''), msg)).toBe(true);
+    // TODO: Could make this test stricter by testing the exact output more closely, but it's tricky the characters added for new lines, colours, etc.
 
   }); 
 
@@ -81,12 +84,12 @@ describe('node-logger testing', () => {
     const output = stdout.inspectSync(() => {
       logger.info(msg, obj);
     });
-    expect(check.contains(output[0], validOptions.level)).toBe(true);
-    expect(check.contains(output[0], msg)).toBe(true);
-    expect(check.contains(output[0], obj.name)).toBe(true);
-    expect(check.contains(output[0], 'meta')).toBe(true);
-    expect(check.contains(output[0], 'timestr')).toBe(true);
-    expect(check.contains(output[0], 'timestamp')).toBe(true);
+    expect(check.contains(output.join(''), validOptions.level)).toBe(true);
+    expect(check.contains(output.join(''), msg)).toBe(true);
+    expect(check.contains(output.join(''), obj.name)).toBe(true);
+    expect(check.contains(output.join(''), 'meta')).toBe(true);
+    expect(check.contains(output.join(''), 'timestr')).toBe(true);
+    expect(check.contains(output.join(''), 'timestamp')).toBe(true);
     // TODO: Could make this test stricter by testing the exact output more closely
 
   });   
@@ -107,7 +110,7 @@ describe('node-logger testing', () => {
     const output = stdout.inspectSync(() => {
       logger.info(msg);
     });
-    expect(check.contains(output[0], correlationId)).toBe(true);
+    expect(check.contains(output.join(''), correlationId)).toBe(true);
 
   });
 
@@ -126,7 +129,7 @@ describe('node-logger testing', () => {
     const output = stdout.inspectSync(() => {
       logger.info(msg);
     });
-    expect(check.contains(output[0], correlationId)).toBe(true);
+    expect(check.contains(output.join(''), correlationId)).toBe(true);
 
   });
   
@@ -146,7 +149,7 @@ describe('node-logger testing', () => {
     const output = stdout.inspectSync(() => {
       logger.info(msg);
     });
-    expect(check.contains(output[0], correlationId)).toBe(true);
+    expect(check.contains(output.join(''), correlationId)).toBe(true);
 
   });
 
@@ -164,7 +167,7 @@ describe('node-logger testing', () => {
     const output = stdout.inspectSync(() => {
       logger.info(msg);
     });
-    expect(check.contains(output[0], '[]')).toBe(true);
+    expect(check.contains(output.join(''), '[]')).toBe(true);
 
   });
 
