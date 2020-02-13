@@ -216,16 +216,9 @@ function logStackdriver(level, part1, part2) {
     p1 = new SerialisedError(part1);
   } else {
     if (level === 'error' && check.nonEmptyString(part1)) {
-      if (check.instance(part2, Error)) {
-        // Add the string to the start of the part2 error object message
-        p1 = new SerialisedError(part2);
-        p1.message = `${part1} --> ${p1.message}`;
-        // N.B. it doesn't actually show this message on the Error Reporting screen anyway, it uses the first line of the stack instead, so let's update this first line of the stack too.
-        p1.stack = `${part1} --> ${p1.stack}`;
-      } else {
-        const part1AsErrorObject = new Error(part1);
-        p1 = new SerialisedError(part1AsErrorObject);
-      }
+      const part1AsErrorObject = new Error(part1);
+      p1 = new SerialisedError(part1AsErrorObject);
+      // I did try merging the part1 string with the part2 error object (if available), but even after appending the part1 string to the error message and the stack it still wasn't included in the title of the Error Report, so decided simply to create a new error using the string as the message and then the part2 error can always be viewed in the meta object in the full stackdriver logs.
     } else {
       p1 = part1;
     }
