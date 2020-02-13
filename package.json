@@ -1,6 +1,6 @@
 {
   "name": "node-logger",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Produces sensible log output from node applications.",
   "main": "index.js",
   "scripts": {
