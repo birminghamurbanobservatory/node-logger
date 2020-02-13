@@ -218,7 +218,7 @@ function logStackdriver(level, part1, part2) {
     if (level === 'error' && check.nonEmptyString(part1)) {
       const part1AsErrorObject = new Error(part1);
       p1 = new SerialisedError(part1AsErrorObject);
-      // I did try merging the part1 string with the part2 error object (if available), but even after appending the part1 string to the error message and the stack it still wasn't included in the title of the Error Report, so decided simply to create a new error using the string as the message and then the part2 error can always be viewed in the meta object in the full stackdriver logs.
+      // For some reason Error Reporting will show the part2 error object (if available) that we store as the "meta" property, so the only real reason for creating a new error object from this part1 string is so that Error Reporting recognises this log as an error.
     } else {
       p1 = part1;
     }
