@@ -3,6 +3,7 @@ const {stringify} = require('q-i');
 const check = require('check-types');
 const chalk = require('chalk');
 const SerialisedError = require('serialised-error');
+const _ = require('lodash');
 
 
 let _options = {
@@ -207,8 +208,27 @@ function logStackdriver(level, part1, part2) {
 
   const now = new Date();
 
-  // Need to convert errors to a POJO or JSON.stringify won't work.
-  const p1 = check.instance(part1, Error) ? new SerialisedError(part1) : part1;
+  // StackDriver's "Error Reporting" feature is able to identify errors that have been logged and show them separately on the "Error Reporting" page of the Google Cloud Platform console. It can also send you notifications when they occur.
+  // HOWEVER, it can only identify these errors if the error object forms the "message" property of the jsonPayload. Source: https://cloud.google.com/error-reporting/docs/formatting-error-messages
+  // The following increases the chances of 'error' level logs being spotted by "Error Reporting".
+  let p1;
+  if (check.instance(part1, Error)) {
+    p1 = new SerialisedError(part1);
+  } else {
+    if (level === 'error' && check.nonEmptyString(part1)) {
+      if (check.instance(part2, Error)) {
+        // Add the string to the start of the part2 error object message
+        p1 = new SerialisedError(part2);
+        p1.message = `${part1} --> ${p1.message}`;
+      } else {
+        const part1AsErrorObject = new Error(part1);
+        p1 = new SerialisedError(part1AsErrorObject);
+      }
+    } else {
+      p1 = part1;
+    }
+  }
+
   const p2 = check.instance(part2, Error) ? new SerialisedError(part2) : part2;
 
   // Need to map the log levels we use to the Log Severity levels that Google and Stackdriver use.
