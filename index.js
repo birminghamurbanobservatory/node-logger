@@ -220,6 +220,8 @@ function logStackdriver(level, part1, part2) {
         // Add the string to the start of the part2 error object message
         p1 = new SerialisedError(part2);
         p1.message = `${part1} --> ${p1.message}`;
+        // N.B. it doesn't actually show this message on the Error Reporting screen anyway, it uses the first line of the stack instead, so let's update this first line of the stack too.
+        p1.stack = `${part1} --> ${p1.stack}`;
       } else {
         const part1AsErrorObject = new Error(part1);
         p1 = new SerialisedError(part1AsErrorObject);
